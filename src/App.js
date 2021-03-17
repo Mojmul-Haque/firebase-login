@@ -8,6 +8,7 @@ if (!firebase.apps.length) {
   firebase.initializeApp(FirebaseConfig)
 }
 function App () {
+  const [newUser, setNewUser] = useState(false)
   const [user, setUser] = useState({
     isSignIn: false,
     name: '',
@@ -15,7 +16,8 @@ function App () {
     password: '',
     photo: '',
     success: null,
-    errorMessage: ''
+    errorMessage: '',
+    login: true
   })
 
   const googleProvider = new firebase.auth.GoogleAuthProvider()
@@ -47,10 +49,16 @@ function App () {
       .auth()
       .signOut()
       .then(res => {
+        const {email, password} = user
         const userLogout = {
-          isSignIn: false
+          isSignIn: false,
+          name: '',
+          email: email,
+          password: password
         }
         setUser(userLogout)
+        console.log(res)
+        console.log(user)
       })
       .catch(error => {
         console.log(error)
@@ -60,29 +68,57 @@ function App () {
   // form control all function start here(create user + sign in with email and password)
 
   const handleSubmit = e => {
-    firebase
-    .auth()
-    .createUserWithEmailAndPassword(user.email, user.password)
-    .then(res => {
-      const newUserInfo = { ...user }
-      newUserInfo.errorMessage = ''
-      newUserInfo.success = true
-      setUser(newUserInfo)
-      console.log(user)
-      console.log(res.user)
-    })
-    .catch(error => {
-      var errorCode = error.code
-      var errorMessage = error.message
-      console.log(errorCode, errorMessage)
-      const newUserInfo = { ...user }
-      newUserInfo.success = false
-      newUserInfo.errorMessage = errorMessage
-      setUser(newUserInfo)
-    })
-    
+    if (newUser) {
+      firebase
+        .auth()
+        .createUserWithEmailAndPassword(user.email, user.password)
+        .then(res => {
+          const newUserInfo = { ...user }
+          newUserInfo.errorMessage = ''
+          newUserInfo.success = true
+          setUser(newUserInfo)
+          console.log(user)
+          console.log(res.user, 'crated account successfully')
+        })
+        .catch(error => {
+          var errorCode = error.code
+          var errorMessage = error.message
+          console.log(errorCode, errorMessage)
+          const newUserInfo = { ...user }
+          newUserInfo.success = false
+          newUserInfo.errorMessage = errorMessage
+          setUser(newUserInfo)
+        })
+    }
+
+    //  sign in user with email & password
+    else {
+      firebase
+        .auth()
+        .signInWithEmailAndPassword(user.email, user.password)
+        .then(res => {
+          // Signed in
+          var loginUser = res.user
+          const newUserInfo = { ...user }
+          newUserInfo.isSignIn = true
+          newUserInfo.login = true
+          setUser(newUserInfo)
+          console.log(loginUser, 'user login succeessful')
+        })
+        .catch(error => {
+          var errorCode = error.code
+          var errorMessage = error.message
+          const newUserInfo = { ...user }
+          newUserInfo.errorMessage = errorMessage
+          newUserInfo.login = false
+          setUser(newUserInfo)
+          console.log(errorCode, errorMessage)
+        })
+    }
+
     e.preventDefault()
   }
+  console.log(user)
 
   // handle input value changes
   const inputValueUpdated = e => {
@@ -102,6 +138,11 @@ function App () {
     }
     console.log(e.target.name, ' = ', e.target.value)
   }
+
+  const handleCheckBox = () => {
+    setNewUser(!newUser)
+  }
+  console.log(newUser, 'its new user State')
 
   console.log(user)
 
@@ -138,16 +179,15 @@ function App () {
       <br />
 
       <label>
-        <input
-          type='checkbox'
-          value=''
-        />
-        Registera a new user
+        <input type='checkbox' onChange={handleCheckBox} />
+        Register a new user
       </label>
       <br />
       <br />
 
       <form onSubmit={handleSubmit}>
+        {newUser && (
+          <>
             <input
               type='text'
               name='name'
@@ -158,6 +198,9 @@ function App () {
             />
             <br />
             <br />
+          </>
+        )}
+
         <input
           type='text'
           name='email'
@@ -179,16 +222,18 @@ function App () {
         />
         <br />
         <br />
-        <input type='submit' value= 'SignUp' />
+        <input type='submit' value={newUser ? 'SignUp' : 'Login'} />
       </form>
 
       {/* <h6>{!user.success && user.errorMessage}</h6> */}
-      {!user.success &&(
+      {!user.success && newUser && (
         <h4 style={{ color: 'red' }}>{user.errorMessage}</h4>
       )}
-      {user.success && (
+      {user.success && newUser && (
         <h4 style={{ color: 'green' }}>User Account Created Successfully</h4>
       )}
+
+      {!user.login && <h6 style={{ color: 'red' }}>{user.errorMessage}</h6>}
     </div>
   )
 }
